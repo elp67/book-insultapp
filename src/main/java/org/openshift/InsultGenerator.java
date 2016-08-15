@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.SQLException;
 
 public class InsultGenerator {
   public String generateInsult() {
@@ -18,23 +19,29 @@ public class InsultGenerator {
       String username = System.getenv("POSTGRESQL_USER");
       String password = System.getenv("PGPASSWORD");
       Connection connection = DriverManager.getConnection(databaseURL, username, password);
-
-      if (connection != null) {
-        String SQL = "select a.string AS first, b.string AS second, c.string AS noun from short_adjective a, long adjective b, noun c ORDER BY random() limit 1";
-        Statement stmt = connection.createStatement();
-        ResultSet rs = stmt.executeQuery(SQL);
-        while(rs.next()) {
-          if (vowels.indexOf(rs.getString("first")) == -1) {
-            article = "a";
+      try {
+        if (connection != null) {
+          String SQL = "select a.string AS first, b.string AS second, c.string AS noun from short_adjective a, long_adjective b, noun c ORDER BY random() limit 1";
+          Statement stmt = connection.createStatement();
+          ResultSet rs = stmt.executeQuery(SQL);
+          while(rs.next()) {
+            if (vowels.indexOf(rs.getString("first")) == -1) {
+              article = "a";
+            }
+            theInsult = String.format("Thou art %s %s %s %s!",
+                article, rs.getString("first"), rs.getString("second"), rs.getString("noun"));
           }
-          theInsult = String.format("Thou art %s %s %s %s!",
-              article, rs.getString("first"), rs.getString("second"), rs.getString("noun"));
+          rs.close();
+          connection.close();
         }
-        rs.close();
-        connection.close();
+      } catch (SQLException se) {
+        se.printStackTrace();
+        return "SQL exception occurred!";
       }
     } catch (Exception e) {
+      e.printStackTrace();
       return "Database connection problem!";
+
     }
     return theInsult;
   }
